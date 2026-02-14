@@ -10,7 +10,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
     }
 
-    // Generate a secure 36-character session key for Mira Executor
+    // Check if user already has a key
+    const { rows: existingKeys } = await sql`
+      SELECT COUNT(*) as key_count
+      FROM user_keys
+      WHERE user_id = ${userId}
+    `;
+
+    if (existingKeys[0].key_count > 0) {
+      return NextResponse.json({ 
+        error: 'You already have a key. Only one key per user is allowed.' 
+      }, { status: 403 });
+    }
+
+    // Generate a secure 36-character session key
     const sessionKey = randomBytes(18).toString('hex');
 
     // Insert the new key into the database for this user
@@ -22,7 +35,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ sessionKey });
 
   } catch (error) {
-    console.error('Mira Executor Key generation error:', error);
+    console.error('Key generation error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

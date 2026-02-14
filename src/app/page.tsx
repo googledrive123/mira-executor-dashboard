@@ -19,13 +19,12 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ loginKey: key }),
-        credentials: 'include' // Important: include cookies
+        credentials: 'include'
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        // Wait a moment for the cookie to be set
         setTimeout(() => {
           router.push('/dashboard');
         }, 100);
@@ -104,8 +103,16 @@ export default function LoginPage() {
           </form>
 
           {/* Footer */}
-          <div className="mt-6 text-center">
-            <p className="text-xs text-slate-400">
+          <div className="mt-6 space-y-3">
+            <a
+              href="https://discord.gg/p4fRhak5e4"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition text-center"
+            >
+              🎮 Join the Discord!
+            </a>
+            <p className="text-xs text-slate-400 text-center">
               Don't have a key? Contact your administrator.
             </p>
           </div>

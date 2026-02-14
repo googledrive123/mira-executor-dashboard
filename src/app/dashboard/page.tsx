@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const [newKey, setNewKey] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showResetHwidModal, setShowResetHwidModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -32,56 +33,56 @@ export default function DashboardPage() {
   }, []);
 
   const fetchData = async () => {
-  try {
-    setError(null);
-    
-    console.log('Fetching stats...');
-    
-    // Fetch stats
-    const statsRes = await fetch('/api/stats/get', {
-      credentials: 'include'
-    });
-    
-    console.log('Stats response status:', statsRes.status);
-    
-    if (statsRes.status === 401) {
-      console.log('Not authenticated, redirecting to login');
-      router.push('/');
-      return;
-    }
-    
-    if (!statsRes.ok) {
-      const errorData = await statsRes.json();
-      console.error('Stats error:', errorData);
-      throw new Error(errorData.error || 'Failed to fetch stats');
-    }
-    
-    const statsData = await statsRes.json();
-    console.log('Stats data:', statsData);
-    setStats(statsData);
+    try {
+      setError(null);
+      
+      console.log('Fetching stats...');
+      
+      // Fetch stats
+      const statsRes = await fetch('/api/stats/get', {
+        credentials: 'include'
+      });
+      
+      console.log('Stats response status:', statsRes.status);
+      
+      if (statsRes.status === 401) {
+        console.log('Not authenticated, redirecting to login');
+        router.push('/');
+        return;
+      }
+      
+      if (!statsRes.ok) {
+        const errorData = await statsRes.json();
+        console.error('Stats error:', errorData);
+        throw new Error(errorData.error || 'Failed to fetch stats');
+      }
+      
+      const statsData = await statsRes.json();
+      console.log('Stats data:', statsData);
+      setStats(statsData);
 
-    console.log('Fetching keys...');
-    
-    // Fetch keys
-    const keysRes = await fetch('/api/keys/list', {
-      credentials: 'include'
-    });
-    
-    console.log('Keys response status:', keysRes.status);
-    
-    if (keysRes.ok) {
-      const keysData = await keysRes.json();
-      console.log('Keys data:', keysData);
-      setKeys(keysData.keys || []);
+      console.log('Fetching keys...');
+      
+      // Fetch keys
+      const keysRes = await fetch('/api/keys/list', {
+        credentials: 'include'
+      });
+      
+      console.log('Keys response status:', keysRes.status);
+      
+      if (keysRes.ok) {
+        const keysData = await keysRes.json();
+        console.log('Keys data:', keysData);
+        setKeys(keysData.keys || []);
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
+      setLoading(false);
     }
-    
-    setLoading(false);
-  } catch (error) {
-    console.error('Failed to fetch data:', error);
-    setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
-    setLoading(false);
-  }
-};
+  };
 
   const handleGenerateKey = async () => {
     setGenerating(true);
@@ -90,7 +91,7 @@ export default function DashboardPage() {
     try {
       const res = await fetch('/api/keys/generate', {
         method: 'POST',
-        credentials: 'include' // Important: include cookies
+        credentials: 'include'
       });
 
       const data = await res.json();
@@ -110,7 +111,6 @@ export default function DashboardPage() {
   };
 
   const handleLogout = () => {
-    // Clear the cookie by setting it to expire
     document.cookie = 'userId=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     router.push('/');
   };
@@ -118,6 +118,38 @@ export default function DashboardPage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     alert('Copied to clipboard!');
+  };
+
+  // Reset HWID Modal
+  const ResetHwidModal = () => {
+    if (!showResetHwidModal) return null;
+    
+    return (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-slate-800 rounded-2xl p-8 max-w-md w-full border border-slate-700 shadow-2xl">
+          <h2 className="text-2xl font-bold text-white mb-4">Reset HWID</h2>
+          <p className="text-slate-300 mb-6">
+            To reset your Hardware ID lock, please join our Discord server and open a support ticket.
+          </p>
+          <div className="flex gap-3">
+            <a
+              href="https://discord.gg/p4fRhak5e4"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition text-center"
+            >
+              Join Discord
+            </a>
+            <button
+              onClick={() => setShowResetHwidModal(false)}
+              className="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -191,41 +223,61 @@ export default function DashboardPage() {
         <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700 mb-8">
           <h2 className="text-2xl font-bold text-white mb-4">Generate Session Key</h2>
           <p className="text-slate-300 mb-4">
-            Generate a new 36-character session key for use with Mira Executor. This key will be locked to your machine on first use.
+            Generate your 36-character session key for use with Mira Executor. This key will be locked to your machine on first use. You can only generate one key per account.
           </p>
           
-          <button
-            onClick={handleGenerateKey}
-            disabled={generating}
-            className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition"
-          >
-            {generating ? 'Generating...' : 'Generate New Key'}
-          </button>
-
-          {newKey && (
-            <div className="mt-4 bg-green-900/30 border border-green-500 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-200 text-sm mb-2">Your new session key:</p>
-                  <code className="text-white font-mono text-lg">{newKey}</code>
-                </div>
-                <button
-                  onClick={() => copyToClipboard(newKey)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
-                >
-                  Copy
-                </button>
-              </div>
-              <p className="text-green-300 text-xs mt-2">
-                ⚠️ Save this key! It won't be shown again.
+          {keys.length > 0 ? (
+            <div className="bg-blue-900/30 border border-blue-500 rounded-lg p-4">
+              <p className="text-blue-200 text-sm">
+                ℹ️ You already have a key. Only one key per user is allowed.
               </p>
             </div>
+          ) : (
+            <>
+              <button
+                onClick={handleGenerateKey}
+                disabled={generating}
+                className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition"
+              >
+                {generating ? 'Generating...' : 'Generate New Key'}
+              </button>
+
+              {newKey && (
+                <div className="mt-4 bg-green-900/30 border border-green-500 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-200 text-sm mb-2">Your new session key:</p>
+                      <code className="text-white font-mono text-lg">{newKey}</code>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(newKey)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <p className="text-green-300 text-xs mt-2">
+                    ⚠️ Save this key! It won't be shown again.
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* Keys List */}
         <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700">
-          <h2 className="text-2xl font-bold text-white mb-4">Your Keys</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-white">Your Keys</h2>
+            {keys.length > 0 && keys.some(key => key.hwid) && (
+              <button
+                onClick={() => setShowResetHwidModal(true)}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition"
+              >
+                Reset HWID
+              </button>
+            )}
+          </div>
           
           {keys.length === 0 ? (
             <p className="text-slate-400">No keys generated yet. Create one above to get started.</p>
@@ -272,6 +324,9 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Render the modal */}
+      <ResetHwidModal />
     </div>
   );
 }
