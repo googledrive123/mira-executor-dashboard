@@ -4,7 +4,7 @@ import { sql } from '@vercel/postgres';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  context: { params: Promise<{ userId: string }> }
 ) {
   try {
     // Check admin auth
@@ -13,7 +13,8 @@ export async function GET(
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const userId = params.userId;
+    // Await params in Next.js 15+
+    const { userId } = await context.params;
 
     const { rows } = await sql`
       SELECT 
